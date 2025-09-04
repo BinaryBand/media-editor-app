@@ -15,7 +15,11 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: Colors[colorScheme ?? "light"].background,
+        },
+        headerTintColor: Colors[colorScheme ?? "light"].text,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
@@ -31,6 +35,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Music Player",
+          headerTitle: "Music Player",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="music.note" color={color} />,
         }}
       />
@@ -38,6 +43,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: "Settings",
+          headerTitle: "Settings",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />

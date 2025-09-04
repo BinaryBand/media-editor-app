@@ -110,7 +110,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Title style={styles.title}>Music Player Settings</Title>
 
       {/* Library Management Section */}
@@ -256,6 +256,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  contentContainer: {
+    paddingBottom: 32, // Add bottom padding for breathing room
   },
   title: {
     textAlign: "center",
