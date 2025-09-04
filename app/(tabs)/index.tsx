@@ -3,7 +3,7 @@ import MusicLibrary from "@/components/MusicLibrary";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Track } from "@/services/AudioService";
 import React, { useState } from "react";
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { SafeAreaView, StatusBar, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
   const [selectedTrack, setSelectedTrack] = useState<Track | undefined>();
@@ -17,15 +17,20 @@ export default function HomeScreen() {
   const backgroundColor = isDark ? "#000000" : "#F5F5F5";
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
-      <View style={styles.content}>
-        {/* Media Player */}
-        <MediaPlayer track={selectedTrack} />
+    <View style={[styles.container, { backgroundColor }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={backgroundColor} />
+      <SafeAreaView style={styles.safeArea}>
+        {/* Music Library - takes up most space */}
+        <View style={styles.libraryContainer}>
+          <MusicLibrary onTrackSelect={handleTrackSelect} selectedTrackId={selectedTrack?.id} />
+        </View>
 
-        {/* Music Library */}
-        <MusicLibrary onTrackSelect={handleTrackSelect} selectedTrackId={selectedTrack?.id} />
-      </View>
-    </SafeAreaView>
+        {/* Media Player - sticky at bottom */}
+        <View style={styles.playerContainer}>
+          <MediaPlayer track={selectedTrack} />
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -33,7 +38,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  safeArea: {
     flex: 1,
+  },
+  libraryContainer: {
+    flex: 1,
+  },
+  playerContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
   },
 });

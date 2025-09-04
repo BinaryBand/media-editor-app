@@ -137,17 +137,9 @@ export default function MediaPlayer({ track }: MediaPlayerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    margin: 10,
-    borderRadius: 15,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    padding: 15,
+    paddingBottom: 10,
+    backgroundColor: "transparent",
   },
   noTrackText: {
     textAlign: "center",
