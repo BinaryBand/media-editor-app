@@ -63,16 +63,39 @@ export default function MediaPlayer({ track }: MediaPlayerProps) {
     );
   }
 
+  const currentTrack = audioState.currentTrack;
+
   return (
     <View style={[styles.container, { backgroundColor: cardColor }]}>
       {/* Track Info */}
       <View style={styles.trackInfo}>
         <Text style={[styles.trackTitle, { color: textColor }]} numberOfLines={1}>
-          {audioState.currentTrack.title}
+          {currentTrack.title}
         </Text>
         <Text style={[styles.trackArtist, { color: textColor + "80" }]} numberOfLines={1}>
-          {audioState.currentTrack.artist || "Unknown Artist"}
+          {currentTrack.artist || "Unknown Artist"}
         </Text>
+
+        {/* Additional metadata */}
+        <View style={styles.metadataContainer}>
+          {currentTrack.album && currentTrack.album !== "Unknown Album" && (
+            <Text style={[styles.metadataText, { color: textColor + "60" }]} numberOfLines={1}>
+              {currentTrack.album}
+              {currentTrack.year && ` (${currentTrack.year})`}
+            </Text>
+          )}
+          {currentTrack.genre && (
+            <Text style={[styles.metadataText, { color: textColor + "60" }]} numberOfLines={1}>
+              {currentTrack.genre}
+            </Text>
+          )}
+          {currentTrack.trackNumber && (
+            <Text style={[styles.metadataText, { color: textColor + "60" }]}>
+              Track {currentTrack.trackNumber}
+              {currentTrack.diskNumber && ` • Disc ${currentTrack.diskNumber}`}
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Progress Bar */}
@@ -159,6 +182,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 4,
+  },
+  metadataContainer: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  metadataText: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 2,
   },
   progressContainer: {
     flexDirection: "row",

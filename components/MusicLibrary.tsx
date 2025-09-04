@@ -1,5 +1,6 @@
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Track } from "@/services/AudioService";
+import { metadataService } from "@/services/MetadataService";
 import * as MediaLibrary from "expo-media-library";
 import React, { useEffect, useState } from "react";
 import { Alert, FlatList, StyleSheet, View } from "react-native";
@@ -64,15 +65,18 @@ export default function MusicLibrary({ onTrackSelect, selectedTrackId }: MusicLi
       const newTracks: Track[] = await Promise.all(
         media.assets.map(async (asset) => {
           const assetInfo = await MediaLibrary.getAssetInfoAsync(asset);
-          return {
-            id: asset.id,
-            title: asset.filename.replace(/\.[^/.]+$/, ""),
-            artist: "Unknown Artist",
-            uri: assetInfo.localUri || assetInfo.uri,
-            fileName: asset.filename,
-            duration: asset.duration * 1000, // Convert to milliseconds
-            album: "Unknown Album",
-          };
+          const uri = assetInfo.localUri || assetInfo.uri;
+
+          // Use the metadata service to extract metadata and create track
+          const trackWithMetadata = await metadataService.createTrackWithMetadata(
+            asset.id,
+            asset.filename,
+            uri,
+            asset.duration,
+            asset // Pass the asset for metadata extraction
+          );
+
+          return trackWithMetadata;
         })
       );
 
@@ -114,7 +118,9 @@ export default function MusicLibrary({ onTrackSelect, selectedTrackId }: MusicLi
       filtered = filtered.filter(
         (track) =>
           track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          track.artist?.toLowerCase().includes(searchQuery.toLowerCase())
+          track.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          track.album?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          track.genre?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -138,11 +144,12 @@ export default function MusicLibrary({ onTrackSelect, selectedTrackId }: MusicLi
 
   const renderTrack = ({ item }: { item: Track }) => {
     const isSelected = item.id === selectedTrackId;
+    const { secondary } = metadataService.getDetailedTrackInfo(item);
 
     return (
       <List.Item
         title={item.title}
-        description={item.artist}
+        description={secondary}
         left={(props) => <List.Icon {...props} icon="music-note" />}
         right={(props) => (isSelected ? <List.Icon {...props} icon="play" /> : null)}
         onPress={() => onTrackSelect(item)}
@@ -220,7 +227,7 @@ export default function MusicLibrary({ onTrackSelect, selectedTrackId }: MusicLi
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" />
-          <Text>Loading music...</Text>
+          <Text>Loading music and extracting metadata...</Text>
         </View>
       ) : filteredTracks.length === 0 ? (
         <View style={styles.centered}>

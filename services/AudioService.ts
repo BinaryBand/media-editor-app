@@ -15,6 +15,11 @@ export interface Track {
   uri: string;
   fileName: string;
   album?: string;
+  albumArtist?: string;
+  genre?: string;
+  year?: number;
+  trackNumber?: number;
+  diskNumber?: number;
 }
 
 export interface AudioState {
