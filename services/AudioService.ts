@@ -1,4 +1,11 @@
-import { Audio, AVPlaybackSource } from "expo-av";
+import {
+  AudioPlayer,
+  AudioSource,
+  AudioStatus,
+  createAudioPlayer,
+  PLAYBACK_STATUS_UPDATE,
+  setAudioModeAsync,
+} from "expo-audio";
 
 export interface Track {
   id: string;
@@ -20,7 +27,7 @@ export interface AudioState {
 }
 
 class AudioService {
-  private sound: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private listeners: ((state: AudioState) => void)[] = [];
   private state: AudioState = {
     isPlaying: false,
@@ -30,6 +37,7 @@ class AudioService {
     duration: 0,
     volume: 1.0,
   };
+  private positionUpdateInterval: number | null = null;
 
   constructor() {
     this.setupAudio();
@@ -37,13 +45,12 @@ class AudioService {
 
   private async setupAudio() {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+      // Set up audio mode for background playback
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
       });
+      console.log("Audio service initialized");
     } catch (error) {
       console.error("Error setting up audio:", error);
     }
@@ -65,25 +72,50 @@ class AudioService {
     this.notifyListeners();
   }
 
+  private startPositionUpdates() {
+    if (this.positionUpdateInterval) {
+      clearInterval(this.positionUpdateInterval);
+    }
+
+    this.positionUpdateInterval = setInterval(() => {
+      if (this.player && this.player.playing) {
+        this.updateState({
+          position: this.player.currentTime * 1000, // Convert to milliseconds
+          duration: this.player.duration * 1000, // Convert to milliseconds
+          isPlaying: this.player.playing,
+        });
+      }
+    }, 500) as any;
+  }
+
+  private stopPositionUpdates() {
+    if (this.positionUpdateInterval) {
+      clearInterval(this.positionUpdateInterval);
+      this.positionUpdateInterval = null;
+    }
+  }
+
   async loadTrack(track: Track) {
     try {
       this.updateState({ isLoading: true });
+      this.stopPositionUpdates();
 
-      if (this.sound) {
-        await this.sound.unloadAsync();
+      // Release the previous player
+      if (this.player) {
+        this.player.remove();
       }
 
-      this.sound = new Audio.Sound();
-      const source: AVPlaybackSource = { uri: track.uri };
+      // Create new audio player with the track URI
+      const audioSource: AudioSource = { uri: track.uri };
+      this.player = createAudioPlayer(audioSource, 500); // 500ms update interval
 
-      await this.sound.loadAsync(source);
-
-      this.sound.setOnPlaybackStatusUpdate((status) => {
+      // Set up event listeners for playback status updates
+      this.player.addListener(PLAYBACK_STATUS_UPDATE, (status: AudioStatus) => {
         if (status.isLoaded) {
           this.updateState({
-            isPlaying: status.isPlaying || false,
-            position: status.positionMillis || 0,
-            duration: status.durationMillis || 0,
+            isPlaying: status.playing || false,
+            position: (status.currentTime || 0) * 1000,
+            duration: (status.duration || 0) * 1000,
           });
         }
       });
@@ -93,6 +125,8 @@ class AudioService {
         isLoading: false,
         position: 0,
       });
+
+      this.startPositionUpdates();
     } catch (error) {
       console.error("Error loading track:", error);
       this.updateState({ isLoading: false });
@@ -101,8 +135,9 @@ class AudioService {
 
   async play() {
     try {
-      if (this.sound) {
-        await this.sound.playAsync();
+      if (this.player) {
+        this.player.play();
+        this.startPositionUpdates();
       }
     } catch (error) {
       console.error("Error playing:", error);
@@ -111,8 +146,9 @@ class AudioService {
 
   async pause() {
     try {
-      if (this.sound) {
-        await this.sound.pauseAsync();
+      if (this.player) {
+        this.player.pause();
+        this.stopPositionUpdates();
       }
     } catch (error) {
       console.error("Error pausing:", error);
@@ -121,10 +157,12 @@ class AudioService {
 
   async stop() {
     try {
-      if (this.sound) {
-        await this.sound.stopAsync();
+      if (this.player) {
+        this.player.pause();
+        await this.player.seekTo(0);
       }
-      this.updateState({ position: 0 });
+      this.stopPositionUpdates();
+      this.updateState({ position: 0, isPlaying: false });
     } catch (error) {
       console.error("Error stopping:", error);
     }
@@ -132,8 +170,9 @@ class AudioService {
 
   async seek(positionMillis: number) {
     try {
-      if (this.sound) {
-        await this.sound.setPositionAsync(positionMillis);
+      if (this.player) {
+        const positionSeconds = positionMillis / 1000;
+        await this.player.seekTo(positionSeconds);
       }
     } catch (error) {
       console.error("Error seeking:", error);
@@ -142,8 +181,8 @@ class AudioService {
 
   async setVolume(volume: number) {
     try {
-      if (this.sound) {
-        await this.sound.setVolumeAsync(volume);
+      if (this.player) {
+        this.player.volume = volume;
         this.updateState({ volume });
       }
     } catch (error) {
@@ -153,6 +192,15 @@ class AudioService {
 
   getState(): AudioState {
     return { ...this.state };
+  }
+
+  // Clean up resources when service is no longer needed
+  dispose() {
+    this.stopPositionUpdates();
+    if (this.player) {
+      this.player.remove();
+      this.player = null;
+    }
   }
 }
 

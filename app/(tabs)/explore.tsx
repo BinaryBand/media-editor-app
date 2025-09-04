@@ -203,7 +203,7 @@ export default function SettingsScreen() {
 
           <List.Item
             title="Audio Engine"
-            description="Expo AV (React Native)"
+            description="Expo Audio (React Native)"
             left={(props) => <List.Icon {...props} icon="music-note" />}
           />
 
